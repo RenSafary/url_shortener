@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"URL_Shortener/db"
+	"URL_Shortener/handlers"
 	"URL_Shortener/redis"
 
 	"github.com/gorilla/mux"
@@ -14,7 +15,6 @@ import (
 func main() {
 	database, err := db.Conn()
 	if err != nil {
-		log.Println("here")
 		log.Fatal(err)
 	}
 	defer database.DB.Close()
@@ -25,7 +25,7 @@ func main() {
 
 	r := mux.NewRouter()
 
-	//r.HandleFunc("/main").Methods("POST")
+	r.HandleFunc("/make_short", handlers.Make_Short).Methods("GET", "POST")
 
 	log.Println("Server is listening on port :8080")
 	err = http.ListenAndServe(":8080", r)
