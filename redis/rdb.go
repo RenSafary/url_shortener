@@ -2,7 +2,6 @@ package redis
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,17 +9,20 @@ import (
 
 	"URL_Shortener/db"
 
-	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 )
 
-type url struct {
+type URL struct {
 	ID    int    `json:"id"`
 	Full  string `json:"full"`
 	Short string `json:"short"`
 }
 
-func RDB(d *db.DBshort) error {
+type RedisCli struct {
+	Conn *redis.Client
+}
+
+func RDB(d *db.DBshort) (*RedisCli, error) {
 	ctx := context.Background()
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
@@ -28,49 +30,42 @@ func RDB(d *db.DBshort) error {
 		DB:       0,
 	})
 
-	rows, err := d.DB.Query("SELECT * FROM urls")
+	rows, err := d.DB.Query("SELECT Id, FullURL, ShortURL FROM urls")
 	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Fatal(err)
-			return nil
-		} else {
-			log.Fatal(err)
-			return nil
-		}
+		return nil, fmt.Errorf("query error: %w", err)
 	}
+	defer rows.Close()
 
 	for rows.Next() {
-		var id int
-		var fullUrl, shortUrl string
-
-		if err := rows.Scan(&id, &fullUrl, &shortUrl); err != nil {
-			log.Fatal(err)
-			return err
+		var u URL
+		if err := rows.Scan(&u.ID, &u.Full, &u.Short); err != nil {
+			log.Println("row scan error:", err)
+			continue
 		}
 
-		data, err := json_marshal(id, fullUrl, shortUrl)
+		data, err := json.Marshal(u)
 		if err != nil {
-			log.Fatal(err)
-			return err
+			log.Println("json marshal error:", err)
+			continue
 		}
 
-		key := fmt.Sprintf("url:%d", id)
-		err = rdb.Set(ctx, key, data, 10*time.Second).Err()
-		if err != nil {
-			log.Fatal(err)
-			return err
+		key := fmt.Sprintf("url:%d", u.ID)
+		if err := rdb.Set(ctx, key, data, 1*time.Hour).Err(); err != nil {
+			log.Println("redis set error:", err)
+			continue
 		}
 	}
 
-	return nil
+	return &RedisCli{Conn: rdb}, nil
 }
 
-func json_marshal(id int, full, short string) ([]byte, error) {
-	urlData := map[string]interface{}{
-		"id":    id,
-		"full":  full,
-		"short": short,
+func (rdb *RedisCli) GetData() {
+	ctx := context.Background()
+	data, err := rdb.Conn.Get(ctx, "url:1").Result()
+	if err != nil {
+		log.Println("redis get error:", err)
+		return
 	}
 
-	return json.Marshal(urlData)
+	log.Println("Data from Redis:", data)
 }
