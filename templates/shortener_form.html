@@ -6,8 +6,8 @@
     <title>URL Shortener</title>
 </head>
 <body>
-    <input id="fullURL" placeholder="Вставьте ссылку">
-    <button id="submitBtn">Сократить</button>
+    <input id="fullURL" placeholder="Insert a link">
+    <button id="submitBtn">Make short</button>
     <div id="result"></div>
 
     <script>
@@ -26,7 +26,7 @@
 
             const data = await response.json();
             const p = document.createElement("p");
-            p.innerText = `Короткая ссылка: ${data.link}`;
+            p.innerText = `Short link: ${data.link}`;
             result.appendChild(p);
         });
     </script>
