@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"log"
 
 	_ "github.com/lib/pq"
 )
@@ -32,4 +33,23 @@ func (d *DBshort) Add(fullUrl, shortUrl string) error {
 		return err
 	}
 	return nil
+}
+
+func (d *DBshort) Get(shortUrl string) (string, error) {
+	var full string
+
+	err := d.DB.QueryRow(
+		"SELECT FullURL FROM urls WHERE ShortURL = $1",
+		shortUrl,
+	).Scan(&full)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Println(err)
+		}
+		log.Println(err)
+		return "", err
+	}
+
+	return full, nil
 }
