@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"log"
 
 	_ "github.com/lib/pq"
 )
@@ -45,9 +44,8 @@ func (d *DBshort) Get(shortUrl string) (string, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Println(err)
+			return "", err
 		}
-		log.Println(err)
 		return "", err
 	}
 
