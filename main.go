@@ -19,13 +19,17 @@ func main() {
 	}
 	defer database.DB.Close()
 
-	if err := redis.RDB(database); err != nil {
+	rdb, err := redis.RDB(database)
+	if err != nil {
 		log.Fatal(err)
 	}
+
+	rdb.GetData()
 
 	r := mux.NewRouter()
 
 	r.HandleFunc("/make_short", handlers.Make_Short).Methods("GET", "POST")
+	r.HandleFunc("/{link}", handlers.Redirect(database)).Methods("GET")
 
 	log.Println("Server is listening on port :8080")
 	err = http.ListenAndServe(":8080", r)
